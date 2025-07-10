@@ -47,7 +47,13 @@ function Equip_ITEM(item)
         if _item then
             Humanoid:EquipTool(_item)
         else
-            return warn("Not Found ITEM in backpack")
+            local itemInCharacter = Character:FindFirstChild(tostring(item))
+            if itemInCharacter then 
+                warn("ไอเท็มอยู่ในตัวละครแล้ว: " .. tostring(item))
+            else
+                warn("ไม่เจอไอเท็ม: " .. tostring(item))
+                return
+            end
         end
     end)
 end
